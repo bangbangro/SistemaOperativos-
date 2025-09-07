@@ -29,7 +29,7 @@ struct Mensaje msg;
 
 while (1)
 {
-    int n = (fd_central_in, &msg, sizeof(msg));
+    int n = read(fd_central_in, &msg, sizeof(msg));
 
     if(n>0){
 
