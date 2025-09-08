@@ -44,12 +44,12 @@ int main() {
                 printf("Usuario %d registrado\n", msg.pid);
             } else {
                 // Reenviar mensaje a los demás
-                for (int i = 0; i < num; i++) {
+                printf("Usuario (%d): %s\n", msg.pid, msg.buf);
+                   for (int i = 0; i < num; i++) {
                     if (usuarios[i].pid != msg.pid) {
                         write(usuarios[i].fd, msg.buf, strlen(msg.buf)+1);
                     }
                 }
-                printf("Servidor reenvió: %s\n", msg.buf);
             }
         }
     }
