@@ -16,9 +16,9 @@ struct Usuario {
 };
 
 int main() {
-    mkfifo("central.fifo", 0666);
+    mkfifo("/tmp/central.fifo", 0666);
 
-    int fd_central_in = open("central.fifo", O_RDONLY);
+    int fd_central_in = open("/tmp/central.fifo", O_RDONLY);
 
     struct Usuario usuarios[100];
     int num = 0; 
@@ -32,7 +32,7 @@ int main() {
             if (strcmp(msg.buf, "/register") == 0) {
                 // Nuevo usuario
                 char fifo_name[64];
-                sprintf(fifo_name, "user_%d.fifo", msg.pid);
+                sprintf(fifo_name, "/tmp/user_%d.fifo", msg.pid);
                 mkfifo(fifo_name, 0666);
 
                 int fd_user = open(fifo_name, O_WRONLY);
