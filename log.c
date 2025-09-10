@@ -40,11 +40,11 @@ int main() {
                 char fifo_name[64];
                 sprintf(fifo_name, "/tmp/user_%d.fifo", msg.pid);
 
-                int fd_user = open(fifo_name, O_WRONLY);
-                if (fd_user < 0) {
-                    perror("Error al abrir fifo del usuario");
-                    continue;
-                }
+                int fd_user;
+    while ((fd_user = open(fifo_name, O_WRONLY)) < 0) {
+        perror("Esperando FIFO del usuario...");
+        sleep(1);
+    }
 
                 usuarios[num].pid = msg.pid;
                 usuarios[num].fd = fd_user;
