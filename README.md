@@ -108,10 +108,9 @@ El usuario 1234 tiene 1 reporte
 ```
 
 4. Si el usuario llega a 10 reportes:
-   ```bash
+ ```bash
 Usuario 1010 expulsado del servidor
 ```
-
 ---
 
 ##  Autor
