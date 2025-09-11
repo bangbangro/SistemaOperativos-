@@ -42,18 +42,21 @@ Compilar cada módulo por separado y en ese mismo orden:
 ```bash
 gcc log.c -o log
 ./log
+```
 
 2. Ejecutar uno o varios procesos de usuarios:
 
 ```bash
 gcc usuarios.c -o usuarios
 ./usuarios
+```
 
 3. En otra terminal, ejecutar el proceso de reportes:
 
 ```bash
 gcc reportar.c -o reportar
 ./reportar
+```
 
 ---
 
@@ -69,14 +72,14 @@ Solo escribir el texto y presionar Enter.
 
 ```bash
 /fork
-
+```
 Crea un nuevo cliente conectado automáticamente al chat
 
 -Reportar a un usuario por su PID
 
 ```bash
 /report 1234
-
+```
 Envía un reporte contra el usuario con PID 1234.
 Si acumula 10 reportes, el proceso será finalizado.
 
