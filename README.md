@@ -103,7 +103,7 @@ El proceso central envía el reporte al módulo de reportes.
 
 3. El módulo de reportes muestra:
 ```bash
-[Reporte] Llegó un reporte contra 1010
+[Reporte] Llegó un reporte contra 1234
 El usuario 1234 tiene 1 reporte
 ```
 
@@ -111,6 +111,9 @@ El usuario 1234 tiene 1 reporte
    ```bash
 Usuario 1010 expulsado del servidor
 ```
+
+---
+
 ##  Autor
 
 Proyecto desarrollado por Rocio Sanchez y Avril Peje para la tarea de Sistemas Operativos.
