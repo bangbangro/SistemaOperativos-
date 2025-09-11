@@ -64,18 +64,18 @@ gcc reportar.c -o reportar
 
 En la interfaz de usuario, se pueden usar los siguientes comandos:
 
--Enviar mensaje normal:
+1. Enviar mensaje normal:
 
 Solo escribir el texto y presionar Enter.
 
--Clonar proceso usuario
+2. Clonar proceso usuario
 
 ```bash
 /fork
 ```
 Crea un nuevo cliente conectado automáticamente al chat
 
--Reportar a un usuario por su PID
+3. Reportar a un usuario por su PID
 
 ```bash
 /report 1234
@@ -84,7 +84,33 @@ Envía un reporte contra el usuario con PID 1234.
 Si acumula 10 reportes, el proceso será finalizado.
 
 ---
+##  Ejemplo
 
+1. Usuario con PID 1234 envía el mensaje:
+   
+```bash
+hola a todos
+```
+
+El proceso central lo registra y lo reenvía a los demás usuarios.
+
+2. Usuario 2324 ejecuta:
+   
+```bash
+/report 1234
+```
+El proceso central envía el reporte al módulo de reportes.
+
+3. El módulo de reportes muestra:
+```bash
+[Reporte] Llegó un reporte contra 1010
+El usuario 1234 tiene 1 reporte
+```
+
+4. Si el usuario llega a 10 reportes:
+   ```bash
+Usuario 1010 expulsado del servidor
+```
 ##  Autor
 
 Proyecto desarrollado por Rocio Sanchez y Avril Peje para la tarea de Sistemas Operativos.
