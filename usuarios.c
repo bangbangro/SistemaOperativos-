@@ -35,10 +35,7 @@ int main() {
         char buf[256];
         while (1) {
             int n = read(fd_in, buf, sizeof(buf));
-            if (n > 0) {
-                printf("[Usuario %d recibió]: %s\n", pid, buf);
-                fflush(stdout);
-            }
+           
         }
     } else {
         // Padre: envía mensajes desde teclado
@@ -46,6 +43,8 @@ int main() {
         msg.pid = pid;
 
         while (1) {
+            printf("[%d] > ", pid);
+            fflush(stdout);
             fgets(msg.buf, sizeof(msg.buf), stdin);
             msg.buf[strcspn(msg.buf, "\n")] = 0; // quitar salto de línea
 
@@ -60,6 +59,7 @@ int main() {
                     printf("[Sistema]: Se creó un nuevo cliente con PID %d\n", child);
                 }
             } else {
+                
                 write(fd_central, &msg, sizeof(msg));
             }
         }
@@ -67,8 +67,3 @@ int main() {
 
     return 0;
 }
-
-
-
-
-
