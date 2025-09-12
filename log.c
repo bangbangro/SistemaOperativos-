@@ -67,7 +67,7 @@ int main() {
                         write(usuarios[i].fd, msg.buf, strlen(msg.buf)+1);
                     }
                 }
-                printf("Mensaje de %d: %s\n", msg.pid, msg.buf);
+                printf("Usuario %d: %s\n", msg.pid, msg.buf);
                 fflush(stdout);
             }
         }
