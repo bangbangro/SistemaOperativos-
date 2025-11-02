@@ -127,7 +127,7 @@ void *monstruo(void *arg){
                 int dist = distancia(m->pos, hero.pos);
                 if (dist <= m->vision_range) {
                     m->estado = MONSTRUO_ALERTADO;
-                    printf("Monstruo %d detecta al héroe en (%d,%d)!\n", m->id, hero.pos.x, hero.pos.y);
+                    printf("Monstruo %d detecta al héroe en (%d,%d)\n", m->id, hero.pos.x, hero.pos.y);
                     
                 }
             }
@@ -250,11 +250,15 @@ void *heroes(void *arg) {
     }
     
 
-    if (h->estado != HEROE_MUERTO)
-        printf("heroe gano (%d,%d)\n", h->pos.x, h->pos.y);
-    else
-        printf("heroe ha muerto\n");
+    if (h->estado != HEROE_MUERTO){
 
+    
+        printf("heroe gano (%d,%d)\n", h->pos.x, h->pos.y);
+        exit(0);
+    }else{
+        printf("heroe ha muerto\n");
+        exit(1);
+    }
     pthread_exit(NULL);
 }
 
