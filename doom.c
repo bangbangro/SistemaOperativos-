@@ -136,6 +136,7 @@ void *monstruo(void *arg){
             atacar_heroe(m, &hero);
             
             if (distancia(m->pos, hero.pos) > m->attack_range)
+    
                 m->estado = MONSTRUO_ALERTADO;
         }
          pthread_mutex_unlock(&mutex); 
@@ -363,6 +364,13 @@ for (int i = 0; i < contador_monstruo; i++) {
     monsters[i].estado = MONSTRUO_DORMIDO;
     pthread_create(&hilos_monstruos[i], NULL, monstruo, &monsters[i]);
 }
+for (int i = 0; i < contador_monstruo; i++) {
+    int dist = distancia(monsters[i].pos, hero.pos);
+    if (dist <= monsters[i].vision_range) {
+        monsters[i].estado = MONSTRUO_ALERTADO;
+    }
+}
+pthread_cond_broadcast(&alertar);
 
 // Esperar que todos terminen
 pthread_join(hilo_heroe, NULL);
