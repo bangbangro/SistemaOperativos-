@@ -15,7 +15,7 @@ pthread_cond_t alertar;
 typedef struct { int x, y; } Coord;
 typedef struct { int width, height; } Grid;
 
-typedef enum { HEROE_MOVIENDOSE, HEROE_ATACANDO, HEROE_MUERTO } EstadoHeroe;
+typedef enum { HEROE_MOVIENDOSE, HEROE_ATACANDO, HEROE_MUERTO, HEROE_TERMINO } EstadoHeroe;
 
 typedef struct {
     int hp;
@@ -183,8 +183,28 @@ void *heroes_thread(void *arg){
     HeroeInfo *h = (HeroeInfo *)arg;
     h->estado = HEROE_MOVIENDOSE;
 
-    while(h->estado != HEROE_MUERTO && h->path_length > 0){
-        // atacar monstruos en rango
+    
+    while(hay_monstruos_en_rango(h) && h->estado != HEROE_MUERTO){
+        h->estado = HEROE_ATACANDO;
+        printf("Héroe %d atacando en POS INICIAL (%d,%d)\n", h->id, h->pos.x, h->pos.y);
+        atacar_monstruos_cercanos(h);
+        pthread_cond_broadcast(&alertar);
+        sleep(1);
+    }
+
+  
+    for(int paso = 1; paso < h->path_length && h->estado != HEROE_MUERTO; paso++){
+        
+        h->estado = HEROE_MOVIENDOSE;
+        pthread_mutex_lock(&mutex);
+        h->pos = h->path[paso];
+        printf("Héroe %d se mueve a (%d,%d)\n", h->id, h->pos.x, h->pos.y);
+        pthread_mutex_unlock(&mutex);
+        pthread_cond_broadcast(&alertar); 
+        
+        sleep(1); 
+
+        
         while(hay_monstruos_en_rango(h) && h->estado != HEROE_MUERTO){
             h->estado = HEROE_ATACANDO;
             printf("Héroe %d atacando en (%d,%d)\n", h->id, h->pos.x, h->pos.y);
@@ -192,34 +212,61 @@ void *heroes_thread(void *arg){
             pthread_cond_broadcast(&alertar);
             sleep(1);
         }
-
-        // moverse al siguiente paso
-        for(int paso = 1; paso < h->path_length && h->estado != HEROE_MUERTO; paso++){
-            h->estado = HEROE_MOVIENDOSE;
-            pthread_mutex_lock(&mutex);
-            h->pos = h->path[paso];
-            printf("Héroe %d se mueve a (%d,%d)\n", h->id, h->pos.x, h->pos.y);
-            pthread_mutex_unlock(&mutex);
-            pthread_cond_broadcast(&alertar);
-
-            while(hay_monstruos_en_rango(h) && h->estado != HEROE_MUERTO){
-                h->estado = HEROE_ATACANDO;
-                printf("Héroe %d atacando en (%d,%d)\n", h->id, h->pos.x, h->pos.y);
-                atacar_monstruos_cercanos(h);
-                pthread_cond_broadcast(&alertar);
-                sleep(1);
-            }
-            sleep(1);
-        }
-        break;
     }
 
-    if(h->estado != HEROE_MUERTO)
-        printf("Héroe %d terminó ruta vivo en (%d,%d)\n", h->id, h->pos.x, h->pos.y);
-    else
-        printf("Héroe %d murió\n", h->id);
+    // 3. Finalizar el hilo
+    if (h->estado != HEROE_MUERTO){
+        printf("Héroe %d llegó a la meta en (%d,%d)\n", h->id, h->pos.x, h->pos.y);
+        
+        pthread_mutex_lock(&mutex); 
+        h->estado = HEROE_TERMINO; 
+        pthread_mutex_unlock(&mutex);
 
+    } else {
+        printf("Héroe %d ha muerto.\n", h->id);
+    }
+    
     pthread_exit(NULL);
+}
+
+int contar_heroes_vivos() {
+    int vivos = 0;
+    pthread_mutex_lock(&mutex); 
+    for (int i = 0; i < contador_heroes; i++) {
+        if (heroes[i].estado != HEROE_MUERTO) {
+            vivos++;
+        }
+    }
+    pthread_mutex_unlock(&mutex); 
+    return vivos;
+}
+
+int contar_monstruos_vivos() {
+    int vivos = 0;
+    pthread_mutex_lock(&mutex); 
+    for (int i = 0; i < contador_monstruo; i++) {
+        if (monsters[i].estado != MONSTRUO_MUERTO) {
+            vivos++;
+        }
+    }
+    pthread_mutex_unlock(&mutex); 
+    return vivos;
+}
+
+int todos_heroes_vivos_terminaron() {
+    pthread_mutex_lock(&mutex);
+    int heroes_jugando = 0;
+    for (int i = 0; i < contador_heroes; i++) {
+
+        if (heroes[i].estado == HEROE_MOVIENDOSE || heroes[i].estado == HEROE_ATACANDO) {
+            heroes_jugando++;
+            break; 
+        }
+    }
+    pthread_mutex_unlock(&mutex);
+    
+    
+    return (heroes_jugando == 0);
 }
 
 // leer archivo configuracion
@@ -373,9 +420,36 @@ int main(int argc, char *argv[]){
 
     pthread_cond_broadcast(&alertar);
 
-    // Esperar todos los hilos
-    for(int i=0;i<contador_heroes;i++) pthread_join(hilos_heroes[i], NULL);
-    for(int i=0;i<contador_monstruo;i++) pthread_join(hilos_monstruos[i], NULL);
+   while (1) {
+        sleep(1); 
+
+        int heroes_vivos = contar_heroes_vivos();
+        int monstruos_vivos = contar_monstruos_vivos();
+
+      
+        if (heroes_vivos == 0) {
+            printf("\n===================================\n");
+            printf("TODOS LOS HEROES HAN MUERTO, Los monstruos ganan.\n");
+            printf("===================================\n");
+            exit(1); 
+        }
+
+        
+        if (monstruos_vivos == 0) {
+            printf("\n===================================\n");
+            printf("TODOS LOS MONSTRUOS HAN SIDO ELIMINADOS Los heroes ganan.\n");
+            printf("===================================\n");
+            exit(0);
+        }
+
+      
+        if (todos_heroes_vivos_terminaron()) {
+            printf("\n===================================\n");
+            printf("TODOS LOS HEROES VIVOS LLEGARON A LA META, Los heroes ganan.\n");
+            printf("===================================\n");
+            exit(0); 
+        }
+    }
 
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&alertar);
