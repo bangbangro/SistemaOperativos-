@@ -101,7 +101,7 @@ void atacar_heroe(MonstruoInfo *m, HeroeInfo *h){
    
     if(h->hp>0){
         h->hp -= m->attack_damage;
-        printf("Mounstruo %d ataca con un daño de %d, HP del heroe: %d\n", m->id, m->attack_damage, h->hp);
+        printf("Monstruo %d ataca con un daño de %d, HP del heroe: %d\n", m->id, m->attack_damage, h->hp);
     }
     
 
@@ -170,6 +170,9 @@ void atacar_monstruos_cercanos(HeroeInfo *h) {
             if (d <= h->attack_range) {
                 m->hp -= h->attack_damage;
                 if (m->hp <= 0) {
+                    if (m->estado != MONSTRUO_MUERTO) { 
+                        printf("Heroe ha eliminado al Monstruo %d\n", m->id);
+                    }
                     m->estado = MONSTRUO_MUERTO;
                 }
             }
@@ -179,13 +182,23 @@ void atacar_monstruos_cercanos(HeroeInfo *h) {
 }
 
 int hay_monstruos_en_rango(HeroeInfo *h) {
+    
+    pthread_mutex_lock(&mutex); 
+
     for (int i = 0; i < contador_monstruo; i++) {
         MonstruoInfo *m = &monsters[i];
         if (m->estado != MONSTRUO_MUERTO) {
+            // Esta lectura ahora es segura
             int d = abs(h->pos.x - m->pos.x) + abs(h->pos.y - m->pos.y);
-            if (d <= h->attack_range) return 1;
+            
+            if (d <= h->attack_range) {
+                pthread_mutex_unlock(&mutex); 
+                return 1;
+            }
         }
     }
+    
+    pthread_mutex_unlock(&mutex); 
     return 0;
 }
 
