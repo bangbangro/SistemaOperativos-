@@ -98,12 +98,12 @@ void alertar_otros_monstruos(MonstruoInfo *emisor){
 
 void atacar_heroe(MonstruoInfo *m, HeroeInfo *h){
 
-    pthread_mutex_lock(&mutex);
+   
     if(h->hp>0){
         h->hp -= m->attack_damage;
         printf("Mounstruo %d ataca con un daño de %d, HP del heroe: %d\n", m->id, m->attack_damage, h->hp);
     }
-    pthread_mutex_unlock(&mutex);
+    
 
     if(h->hp<0){
         h->estado= HEROE_MUERTO;
@@ -113,24 +113,38 @@ void atacar_heroe(MonstruoInfo *m, HeroeInfo *h){
 }
 
 void *monstruo(void *arg){
-
-
     MonstruoInfo *m = (MonstruoInfo *)arg;
-    printf("Hilo del monstruo %d iniciado (estado: %d)\n", m->id, m->estado);
-     while (m->estado != MONSTRUO_MUERTO && hero.estado != HEROE_MUERTO) {
+
+    while (m->estado != MONSTRUO_MUERTO && hero.estado != HEROE_MUERTO) {
         pthread_mutex_lock(&mutex);
-        while (m->estado == MONSTRUO_DORMIDO)
+
+       
+        while (m->estado == MONSTRUO_DORMIDO) {
             pthread_cond_wait(&alertar, &mutex);
+
+            
+            if (hero.estado != HEROE_MUERTO) {
+                int dist = distancia(m->pos, hero.pos);
+                if (dist <= m->vision_range) {
+                    m->estado = MONSTRUO_ALERTADO;
+                    printf("Monstruo %d detecta al héroe en (%d,%d)!\n", m->id, hero.pos.x, hero.pos.y);
+                    
+                }
+            }
+            
+        }
+        
 
         if (m->estado == MONSTRUO_ALERTADO) {
             int dist = distancia(m->pos, hero.pos);
             if (dist <= m->attack_range) {
                 m->estado = MONSTRUO_ATACANDO;
             } else if (dist <= m->vision_range) {
-                alertar_otros_monstruos(m);
+                alertar_otros_monstruos(m); 
                 mover_hacia_heroe(m);
             } else {
-                mover_hacia_heroe(m);
+                
+                mover_hacia_heroe(m); 
             }
         }
 
@@ -138,15 +152,13 @@ void *monstruo(void *arg){
             atacar_heroe(m, &hero);
             
             if (distancia(m->pos, hero.pos) > m->attack_range)
-    
-                m->estado = MONSTRUO_ALERTADO;
+                m->estado = MONSTRUO_ALERTADO; 
         }
          pthread_mutex_unlock(&mutex); 
-        sleep(1);
+         sleep(1);
     }
     pthread_exit(NULL);
 }
-
 //funciones heroes
 
 void atacar_monstruos_cercanos(HeroeInfo *h) {
@@ -181,32 +193,49 @@ void *heroes(void *arg) {
     HeroeInfo *h = (HeroeInfo *)arg;
     h->estado = HEROE_MOVIENDOSE;
 
+    
+    while (hay_monstruos_en_rango(h) && h->estado != HEROE_MUERTO) {
+        h->estado = HEROE_ATACANDO;
+        printf("Héroe ataca en POSICIÓN INICIAL (%d,%d)\n", h->pos.x, h->pos.y);
+        atacar_monstruos_cercanos(h);
+        sleep(1);
+    }
+   
     //para atacar a monstruos en rango
     for (int paso = 1; paso < h->path_length && h->estado != HEROE_MUERTO; paso++) {
         while (hay_monstruos_en_rango(h) && h->estado != HEROE_MUERTO) {
             h->estado = HEROE_ATACANDO;
+            printf("Héroe ataca en (%d,%d)\n", h->pos.x, h->pos.y); 
             atacar_monstruos_cercanos(h);
             sleep(1);
         }
 
-     //seguir moviendose
+        // Salir si murió mientras atacaba
+        if (h->estado == HEROE_MUERTO) break;
+
+    //seguir moviendose
         h->estado = HEROE_MOVIENDOSE;
         pthread_mutex_lock(&mutex);
         h->pos = h->path[paso];
+        printf("Héroe se mueve a (%d,%d)\n", h->pos.x, h->pos.y); 
         pthread_mutex_unlock(&mutex);
 
-        sleep(1); 
-
-        for (int i = 0; i < contador_monstruo; i++) {
-    int dist = distancia(monsters[i].pos, hero.pos);
-    if (dist <= monsters[i].vision_range && monsters[i].estado == MONSTRUO_DORMIDO) {
-        monsters[i].estado = MONSTRUO_ALERTADO;
-        printf("Monstruo %d se despertó, héroe dentro de su rango.\n", monsters[i].id);
+        
         pthread_cond_broadcast(&alertar);
-    }
-}
+        
 
+        sleep(1); 
     }
+
+    
+    while (h->estado != HEROE_MUERTO && hay_monstruos_en_rango(h)) {
+        h->estado = HEROE_ATACANDO;
+        printf("Héroe en posición final (%d,%d), atacando.\n", h->pos.x, h->pos.y);
+        atacar_monstruos_cercanos(h);
+        pthread_cond_broadcast(&alertar); 
+        sleep(1);
+    }
+    
 
     if (h->estado != HEROE_MUERTO)
         printf("heroe gano (%d,%d)\n", h->pos.x, h->pos.y);
@@ -376,13 +405,6 @@ for (int i = 0; i < contador_monstruo; i++) {
     monsters[i].estado = MONSTRUO_DORMIDO;
     pthread_create(&hilos_monstruos[i], NULL, monstruo, &monsters[i]);
 }
-for (int i = 0; i < contador_monstruo; i++) {
-    int dist = distancia(monsters[i].pos, hero.pos);
-    if (dist <= monsters[i].vision_range) {
-        monsters[i].estado = MONSTRUO_ALERTADO;
-    }
-}
-pthread_cond_broadcast(&alertar);
 
 printf("Monstruos iniciales alertados:\n");
 for (int i = 0; i < contador_monstruo; i++) {
@@ -391,6 +413,7 @@ for (int i = 0; i < contador_monstruo; i++) {
     }
 }
 
+pthread_cond_broadcast(&alertar);
 
 // Esperar que todos terminen
 pthread_join(hilo_heroe, NULL);
