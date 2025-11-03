@@ -122,3 +122,5 @@ Héroe 1 se mueve a (37,27)
 ---
 
 ##  Autor
+Proyecto desarrollado por Rocio Sanchez y Avril Peje para la tarea de Sistemas Operativos.
+
