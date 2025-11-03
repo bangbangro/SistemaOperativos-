@@ -1,61 +1,52 @@
 #  Tarea 2 - Sistemas operativos 
 
-Este proyecto implementa un **chat comunitario en C** utilizando **pipes (FIFOs)** para la comunicación entre procesos.  
+Este proyecto implementa una simulación concurrente en C inspirada en el videojuego Doom.
+
+**Existen dos versiones:**
+1. Versión con un héroe (doom.c)
+2. Versión con varios héroes (doom2.c)
 
 ---
 
 ##  Estructura del sistema
 
-1. **Proceso central (`log.c`)**  
-   - Maneja la totalidad del log del chat (conversación de todos los usuarios).  
-   - Recibe los mensajes desde los procesos usuarios y los reenvía al resto.  
-   - Gestiona los reportes de usuarios y los envía al proceso `reportar.c`.
+1. **Héroes**
+- Se mueven en un grid siguiendo una ruta predefinida desde su posición inicial hasta su destino.
+- Atacan a los monstruos que estén dentro de su rango de ataque.
+- Cada héroe corre en un hilo independiente para permitir concurrencia.
 
-2. **Procesos independientes (`usuarios.c`)**  
-   - Se conectan al proceso central mediante FIFOs.  
-   - Pueden enviar y recibir mensajes.  
-   - Pueden salir del sistema en cualquier momento.  
-   - Pueden clonarse mediante el comando `/fork`, creando un nuevo proceso que se comporta como un usuario independiente.
+2. **Monstruos**
+- Permanecen dormidos hasta detectar un héroe dentro de su rango de visión o ser alertados por otro monstruo.
+- Pueden moverse hacia los héroes y atacarlos si están dentro de su rango de ataque.
+- Cada monstruo corre en un hilo independiente.
 
-3. **Sistema de reportes (`reportar.c`)**  
-   - Es un proceso secundario que se ejecuta junto al proceso central.  
-   - Verifica cuántos reportes ha recibido cada proceso (por su PID).  
-   - Si un proceso acumula **10 reportes**, este es expulsado del chat mediante `kill(pid, SIGKILL)`.
+3. **Simulación concurrente**
+- Se sincroniza mediante mutexes y variables de condición para asegurar que movimientos y ataques no se superpongan.
+- La simulación imprime en consola todos los movimientos, ataques, alertas y muertes.
 
 ---
 
 ##  Archivos del proyecto
 
-- `usuarios.c` → Implementa los clientes/usuarios del chat.  
-- `log.c` → Proceso central, encargado de gestionar mensajes y registros.  
-- `reportar.c` → Sistema de reportes y expulsión automática de usuarios.  
+- doom.c → Versión con un solo héroe.
+- doom2.c → Versión con varios héroes.
+- configuracion.txt → Archivo de configuración con la grilla, héroes y monstruos.
 
 ---
 
 ##  Compilación
 
-Compilar cada módulo por separado y en ese mismo orden:
+Compilar la versión que desée:
 
-
-1. Ejecutar el proceso central (log):
-   
+Versión un héroe:
 ```bash
-gcc log.c -o log
-./log
+gcc doom.c -o doom -lpthread
+./doom configuracion.txt
 ```
-
-2. Ejecutar uno o varios procesos de usuarios:
-
+Versión varios héroes
 ```bash
-gcc usuarios.c -o usuarios
-./usuarios
-```
-
-3. En otra terminal, ejecutar el proceso de reportes:
-
-```bash
-gcc reportar.c -o reportar
-./reportar
+gcc doom_multi_heroes.c -o doom_multi_heroes -lpthread
+./doom_multi_heroes config.txt
 ```
 
 ---
