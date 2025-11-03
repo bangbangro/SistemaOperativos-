@@ -51,28 +51,9 @@ gcc doom_multi_heroes.c -o doom_multi_heroes -lpthread
 
 ---
 
-##  Comandos
+##  Archivo de configuración
 
-En la interfaz de usuario, se pueden usar los siguientes comandos:
 
-1. Enviar mensaje normal:
-
-Solo escribir el texto y presionar Enter.
-
-2. Clonar proceso usuario
-
-```bash
-/fork
-```
-Crea un nuevo cliente conectado automáticamente al chat
-
-3. Reportar a un usuario por su PID
-
-```bash
-/report 1234
-```
-Envía un reporte contra el usuario con PID 1234.
-Si acumula 10 reportes, el proceso será finalizado.
 
 ---
 ##  Ejemplo
