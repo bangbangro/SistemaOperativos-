@@ -280,8 +280,6 @@ void manejar_page_fault(process *proc, int page_index) {
 
 void acceso_virtual_aleatorio() {
     if (!lista_procesos) return;
-
-    // Elegir proceso aleatorio
     int count = 0;
     process *tmp = lista_procesos;
     while (tmp) { count++; tmp = tmp->next; }
@@ -292,10 +290,9 @@ void acceso_virtual_aleatorio() {
 
     if (p->num_pages <= 0) return;
 
-    // Elegir página válida aleatoria
     int page = rand() % p->num_pages;
 
-    // Convertir a dirección virtual válida dentro de esa página
+    // Convertir a dirección virtual
     int addr = page * page_size_kb * 1024;
 
     printf("\nAccediendo a direccion virtual %d del proceso %d (pagina %d)\n",
@@ -319,8 +316,6 @@ void finalizar_proceso_random() {
     printf("\nFinalizando proceso %d...\n", p->pid);
     finalizar_proceso(&lista_procesos, p->pid);
 }
-
-// --- NUEVA versión segura de crear_proceso_random() ---
 void print_status() {
     int libres_ram = 0, libres_swap = 0;
     for (int i=0;i<total_ram_frames;i++) if (ram_memory[i].process_id == -1) libres_ram++;
@@ -331,9 +326,7 @@ void print_status() {
 }
 
 void crear_proceso_random() {
-    static int pid_counter = 1;  // PID autoincremental
-
-    // Limitar número de procesos simultáneos
+    static int pid_counter = 1; 
     int max_procesos = 25;
     int cnt = 0;
     process *t = lista_procesos;
@@ -344,7 +337,7 @@ void crear_proceso_random() {
     }
 
     // Tamaño del proceso entre 200 y 600 páginas
-    int paginas = 200 + rand() % 401; // 200..600
+    int paginas = 200 + rand() % 401;
     int size_kb = paginas * page_size_kb;
 
     crear_proceso(&lista_procesos, pid_counter++, size_kb);
