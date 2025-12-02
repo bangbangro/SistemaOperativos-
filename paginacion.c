@@ -122,7 +122,7 @@ void acceder_direccion_virtual(process *proc, int virtual_address) {
     int page_number = virtual_address / (page_size_kb * 1024);
 
     if (page_number < 0 || page_number >= proc->num_pages) {
-        printf("Error, fuera de rango para el proceso %d (direccion %d => pagina %d)\n", proc->pid, virtual_address, page_number);
+        printf("Error, fuera de rango para el proceso %d (direccion %d, pagina %d)\n", proc->pid, virtual_address, page_number);
         return;
     }
 
@@ -248,7 +248,7 @@ void manejar_page_fault(process *proc, int page_index) {
     if (frame_ram == -1) {
         int victima = encontrar_frame_LRU();
         if (victima == -1) {
-            printf("No hay paginas en RAM para expulsar (inconsistencia)\n");
+            printf("No hay paginas en RAM para expulsar\n");
             exit(1);
         }
 
@@ -262,7 +262,7 @@ void manejar_page_fault(process *proc, int page_index) {
         buscar_frame_libre_swap(&swap_index);
 
         if (swap_index == -1) {
-            printf("No hay espacio en swap → FIN DEL PROGRAMA\n");
+            printf("No hay espacio en swap, fin del programa\n");
             exit(1);
         }
 
@@ -347,6 +347,7 @@ void print_status() {
            global_time, proc_cnt, libres_ram, total_ram_frames, libres_swap, total_swap_frames);
 }
 
+//llegada de procesos
 void crear_proceso_random() {
     static int pid_counter = 1;  // PID autoincremental
 
@@ -361,15 +362,12 @@ void crear_proceso_random() {
     }
 
     // Tamaño del proceso entre 200 y 600 páginas
-    int paginas = 200 + rand() % 401; // 200..600
+    int paginas = 200 + rand() % 401; 
     int size_kb = paginas * page_size_kb;
 
     crear_proceso(&lista_procesos, pid_counter++, size_kb);
 
-    printf("Proceso aleatorio creado. PID=%d, %d paginas (%d KB)\n",
-            pid_counter - 1, paginas, size_kb);
 }
-
 
 int main(){
 
