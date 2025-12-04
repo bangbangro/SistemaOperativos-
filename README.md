@@ -1,126 +1,86 @@
-#  Tarea 2 - Sistemas operativos 
+#  Tarea 3 - Sistemas operativos 
 
-Este proyecto implementa una simulación concurrente en C inspirada en el videojuego Doom.
+Esta tarea implementa una simulación de gestión de memoria virtual de un sistema operativo, donde gestiona la RAM y el Swap cuando varios procesos intentan acceder a sus páginas de memoria. Entonces, en esta tarea se ve la Paginación, Page foults y un algoritmo de reemplazo, que en nuestro caso es LRU (Least Recently Used).
 
-**Existen dos versiones:**
-1. Versión con un héroe (doom.c)
-2. Versión con varios héroes (doom2.c)
+---
+##  Descripción del funcionamiento
+
+**Estructura de la Memoria** 
+
+- frame(marco): Representa un espacio real de la memoria.
+
+- page(página): Representa un bloque de memoria virtual de un proceso
+
+- process(proceso): Representa un programa en ejecución 
+
+**Gestión de la memoria**
+
+El código simula el software y hardware del gestor de memoria:
+
+1. **Inicio:**  
+   El usuario define el tamaño de la RAM y de las páginas.  
+   Luego, el programa calcula cuántos frames caben en la RAM, cuánto mide la memoria virtual (entre 1.5× y 4.5× de la RAM), y reserva espacio adicional para Swap, equivalente al doble de la RAM.
+
+2. **Acceso a memoria:**  
+   Cuando un proceso quiere leer una dirección virtual:
+   - Se calcula a qué página pertenece la dirección.  
+   - Se revisa en la Page Table si la página está cargada en RAM.  
+   - Si está en RAM, se actualiza `last_access` para LRU.  
+   - Si no está, ocurre un Page Fault.
+
+3. **Manejo de Page Fault:**  
+   - Se busca un frame libre en RAM.  
+   - Si la RAM está llena, se aplica LRU, seleccionando el frame cuyo `last_access` es más antiguo.  
+   - La página víctima se mueve a Swap y se actualizan las Page Tables.  
+   - Se carga la nueva página solicitada en el frame liberado.  
+   - Si Swap está llena, el simulador termina automáticamente, como exige la guía.
+
+4. **Simulación (main):**
+
+   El `main` simula el paso del tiempo en forma de ciclos:
+
+   - Cada 2 segundos, se crea un proceso con tamaño aleatorio.  
+   - Después de 30 segundos, en cada ciclo se realizan accesos aleatorios a memoria, lo que va llenando la RAM y provoca Page Faults.  
+   - Cada 5 segundos, se finaliza un proceso aleatorio para liberar memoria.
+
+
 
 ---
 
-##  Estructura del sistema
+## Como compilar y ejecutar
 
-1. **Héroes**
-- Se mueven en un grid siguiendo una ruta predefinida desde su posición inicial hasta su destino.
-- Atacan a los monstruos que estén dentro de su rango de ataque.
-- Cada héroe corre en un hilo independiente para permitir concurrencia.
+- 1. Compilar
 
-2. **Monstruos**
-- Permanecen dormidos hasta detectar un héroe dentro de su rango de visión o ser alertados por otro monstruo.
-- Pueden moverse hacia los héroes y atacarlos si están dentro de su rango de ataque.
-- Cada monstruo corre en un hilo independiente.
-
-3. **Simulación concurrente**
-- Se sincroniza mediante mutexes y variables de condición para asegurar que movimientos y ataques no se superpongan.
-- La simulación imprime en consola todos los movimientos, ataques, alertas y muertes.
-
----
-
-##  Archivos del proyecto
-
-- doom.c → Versión con un solo héroe.
-- doom2.c → Versión con varios héroes.
-- configuracion.txt → Archivo de configuración con la grilla, héroes y monstruos.
-
----
-
-## Sincronización
-
-Para que la simulación funcione correctamente, es clave sincronizar los hilos y evitar Condiciones de Carrera.
-
-La Sección Critica principal es cualquier acceso a los datos compartidos (el estado y posiciones de todas las entidades).
-
-Para proteger esta sección, se utilizan dos mecanismos:
-
-
-**1. Mutex (pthread_mutex_t):** 
-Se usa como un "candado" global para proteger la modificación de los datos compartidos. Cualquier thread (heroe o monstruo) que necesite modificar un estado critico (como el HP de un enemigo, su propia posición en el grid, o el estado de MUERTO) debe primero adquirir el mutex. Esto garantiza que solo un thread a la vez pueda alterar el estado del juego, previniendo que los movimientos y ataques se corrompan entre si.
-
-
-**2. Variable de Condición (pthread_cond_t):**
-
-Se utiliza para gestionar eficientemente a los monstruos.
-
-- Los monstruos inician en un estado MONSTRUO_DORMIDO y se ponen a "esperar" (pthread_cond_wait) en esta variable.
-
-- Cuando un heroe se mueve, o un monstruo detecta a un heroe, se envia una señal (pthread_cond_broadcast).
-
-- Esta señal "despierta" a todos los monstruos dormidos, quienes entonces revisan si un heroe ha entrado en su rango de visión.
-
----
-
-## Logica de Fin de Juego (Condiciones de Victoria)
-
-Las dos versiones del proyecto tienen logicas diferentes para determinar cuando finaliza la simulación.
-
-- Parte 1 (doom.c): El programa es simple y se centra en un solo heroe. La simulación termina inmediatamente si ocurre una de dos cosas:
-
-1. El Heroe muere.
-2. El Heroe llega a la última coordenada de su camino (meta).
-
-- Parte 2 (doom2.c): Esta versión es más compleja y actúa como un "árbitro". Se añade un nuevo estado HEROE_TERMINO para marcar a los heroes que han llegado a la meta sin morir. La función main revisa el estado del juego cada segundo y termina el programa solo si se cumple una de las siguientes tres condiciones:
-
-1. Derrota Total: Todos los heroes han sido eliminados (HEROE_MUERTO).
-2. Victoria por Exterminio: Todos los monstruos han sido eliminados (MONSTRUO_MUERTO).
-3. Victoria por Objetivo: Todos los heroes que quedan vivos han llegado a la meta (estado HEROE_TERMINO).
-
----
-
-##  Compilación
-
-Compilar la versión que desée:
-
-Versión un héroe:
 ```bash
-gcc doom.c -o doom -lpthread
-./doom configuracion.txt
-```
-Versión varios héroes
-```bash
-gcc doom_multi_heroes.c -o doom_multi_heroes -lpthread
-./doom_multi_heroes config.txt
+gcc paginacion.c -o paginacion
 ```
 
+- 2. Ejecutar
+
+```bash
+./paginacion
+```
 ---
 
-## Salida de ejemplo en la terminal 
+##  Observaciones
 
-La simulación imprime en consola todos los movimientos, ataques, alertas y muertes.
+- Se usó malloc para manejar estructuras dinamicas, ya que un array estático limitaría el tamaño de RAM/Swap.  
+- Para que la simulación avance más rápido y alcance el uso completo de RAM y Swap, se ajustaron dos parámetros 
 
-```
-Héroe 1 atacando en (36,27)
-Monstruo 8 ataca héroe 1 con daño 20, HP del héroe: 74
-Monstruo 12 ataca héroe 1 con daño 22, HP del héroe: 52
-Monstruo 13 se mueve hacia héroe 1: (41,27)
-Héroe 1 atacando en (36,27)
-Monstruo 8 muerto por héroe 1 en (36,27)
-Monstruo 12 ataca héroe 1 con daño 22, HP del héroe: 30
-Monstruo 13 se mueve hacia héroe 1: (40,27)
-Héroe 1 atacando en (36,27)
-Monstruo 12 ataca héroe 1 con daño 22, HP del héroe: 8
-Monstruo 13 se mueve hacia héroe 1: (39,27)
-Héroe 1 atacando en (36,27)
-Monstruo 12 muerto por héroe 1 en (36,27)
-Monstruo 13 se mueve hacia héroe 1: (38,27)
-Héroe 1 atacando en (36,27)
-Monstruo 13 se mueve hacia héroe 1: (37,27)
-Héroe 1 atacando en (36,27)
-Monstruo 13 muerto por héroe 1 en (36,27)
-Héroe 1 se mueve a (37,27)
-```
+   - Procesos aleatorios más grandes → RAM se llena antes.  
+   - Más accesos aleatorios por ciclo → aumentan los Page Faults → se activa antes el reemplazo LRU.
+ 
+- El programa finaliza correctamente cuando:
+
+  - RAM está llena  
+  - Swap está llena  
+  - Ocurre un Page Fault sin espacio → fin del programa
+
+
+
 
 ---
 
 ##  Autor
-Proyecto desarrollado por Rocio Sanchez y Avril Peje para la tarea de Sistemas Operativos.
 
+Proyecto desarrollado por Rocío Sánchez y Avril Peje para la tarea 3 de Sistemas Operativos.
