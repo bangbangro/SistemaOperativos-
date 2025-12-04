@@ -9,7 +9,7 @@ typedef struct {
     int frame_id;      // Número de marco físico
     int process_id;    // Qué proceso lo está usando (-1 si está libre)
     int page_num;      // Qué página lógica del proceso es
-    int last_access;   // Timestamp para algoritmo LRU (si eliges esa política) [cite: 21]
+    int last_access;   // Timestamp para algoritmo LRU 
 } frame;
 
 typedef struct {
@@ -48,7 +48,7 @@ void init_memory(int ram_size_mb, int page_size_kb_param) {
     total_virtual_pages = (virtual_memory_mb * 1024) / page_size_kb;
 
     total_ram_frames = (ram_size_mb * 1024) / page_size_kb;
-    total_swap_frames = total_ram_frames * 2;
+    total_swap_frames = total_ram_frames;
 
     ram_memory = malloc(total_ram_frames * sizeof(frame));
     swap_memory = malloc(total_swap_frames * sizeof(frame));
@@ -116,98 +116,8 @@ int encontrar_frame_LRU() {
 
 void manejar_page_fault(process *proc, int page_index);
 
-void acceder_direccion_virtual(process *proc, int virtual_address) {
-    if (!proc) return;
 
-    int page_number = virtual_address / (page_size_kb * 1024);
 
-    if (page_number < 0 || page_number >= proc->num_pages) {
-        printf("Error, fuera de rango para el proceso %d (direccion %d => pagina %d)\n", proc->pid, virtual_address, page_number);
-        return;
-    }
-
-    page *pg = &proc->page_table[page_number];
-
-    if (pg->present == 1) {
-        int frame_num = pg->frame_number;
-        if (frame_num >= 0 && frame_num < total_ram_frames) {
-            ram_memory[frame_num].last_access = time(NULL);
-            printf("Acceso exitoso a la direccion virtual %d del proceso %d en el frame %d\n", virtual_address, proc->pid, frame_num);
-        } else {
-            printf("Acceso: frame invalido en tabla de paginas del proceso %d\n", proc->pid);
-        }
-    } else {
-        manejar_page_fault(proc, page_number);
-    }
-}
-
-void crear_proceso(process **proc_list, int pid, int size_kb) {
-    process *new_proc = malloc(sizeof(process));
-    if(!new_proc) { printf("No se pudo asignar memoria para el nuevo proceso.\n"); return; }
-
-    new_proc->pid = pid;
-    new_proc->size = size_kb;
-
-    if(page_size_kb == 0) {
-        printf("Tamaño de página no inicializado.\n");
-        free(new_proc);
-        return;
-    }
-
-    new_proc->num_pages = (size_kb + page_size_kb - 1) / page_size_kb;
-    new_proc->page_table = malloc(new_proc->num_pages * sizeof(page));
-    if (!new_proc->page_table) {
-        printf("No se pudo asignar memoria para la tabla de páginas del proceso %d.\n", pid);
-        free(new_proc);
-        return;
-    }
-
-    for (int i = 0; i < new_proc->num_pages; i++) {
-        new_proc->page_table[i].page_id = i;
-        new_proc->page_table[i].present = 0;
-        new_proc->page_table[i].frame_number = -1;
-    }
-
-    new_proc->next = *proc_list;
-    *proc_list = new_proc;
-
-    printf("Proceso %d creado con %d paginas (tam %d KB).\n", pid, new_proc->num_pages, size_kb);
-}
-
-void finalizar_proceso(process **proc_list, int pid) {
-    process *prev = NULL;
-    process *curr = *proc_list;
-
-    while (curr) {
-        if (curr->pid == pid) {
-            for (int i = 0; i < curr->num_pages; i++) {
-                int frame_num = curr->page_table[i].frame_number;
-                if (curr->page_table[i].present == 1 && frame_num >= 0 && frame_num < total_ram_frames) {
-                    ram_memory[frame_num].process_id = -1;
-                    ram_memory[frame_num].page_num = -1;
-                    ram_memory[frame_num].last_access = 0;
-                } else if (curr->page_table[i].present == 0 && frame_num >= 0 && frame_num < total_swap_frames) {
-                    swap_memory[frame_num].process_id = -1;
-                    swap_memory[frame_num].page_num = -1;
-                    swap_memory[frame_num].last_access = 0;
-                }
-            }
-
-            free(curr->page_table);
-
-            if (prev) prev->next = curr->next;
-            else *proc_list = curr->next;
-
-            free(curr);
-            printf("Proceso %d finalizado y memoria liberada.\n", pid);
-            return;
-        }
-        prev = curr;
-        curr = curr->next;
-    }
-
-    printf("Proceso %d no encontrado.\n", pid);
-}
 
 void asignar_pagina_ram_swap(process *proc, int page_index) {
     int frame_index;
@@ -298,29 +208,61 @@ void manejar_page_fault(process *proc, int page_index) {
 void acceso_virtual_aleatorio() {
     if (!lista_procesos) return;
 
-    // Elegir proceso aleatorio
     int count = 0;
     process *tmp = lista_procesos;
     while (tmp) { count++; tmp = tmp->next; }
 
     int idx = rand() % count;
     process *p = lista_procesos;
-    while (idx-- > 0 && p->next) p = p->next;
+    while (idx-- > 0 && p->next) {
+        p = p->next;
+    }
 
-    if (p->num_pages <= 0) return;
+    int page_index = rand() % p->num_pages;
 
-    // Elegir página válida aleatoria
-    int page = rand() % p->num_pages;
-
-    // Convertir a dirección virtual válida dentro de esa página
-    int addr = page * page_size_kb * 1024;
-
-    printf("\nAccediendo a direccion virtual %d del proceso %d (pagina %d)\n",
-           addr, p->pid, page);
-
-    acceder_direccion_virtual(p, addr);
+    if (p->page_table[page_index].present == 1) {
+        int frame_num = p->page_table[page_index].frame_number;
+        ram_memory[frame_num].last_access = time(NULL);
+        printf("Acceso a pagina %d del proceso %d en frame %d (RAM)\n", page_index, p->pid, frame_num);
+    } else {
+        manejar_page_fault(p, page_index);
+    }
 }
 
+void crear_proceso_random() {
+    int size_kb = (rand() % 512) + 64; // Tamaño entre 64KB y 575KB
+    int num_pages = (size_kb + page_size_kb - 1) / page_size_kb;
+
+    process *new_proc = malloc(sizeof(process));
+    if (!new_proc) {
+        printf("No se pudo asignar memoria para nuevo proceso.\n");
+        return;
+    }
+
+    new_proc->pid = next_pid++;
+    new_proc->size = size_kb;
+    new_proc->num_pages = num_pages;
+    new_proc->page_table = malloc(num_pages * sizeof(page));
+    new_proc->next = NULL;
+
+    if (!new_proc->page_table) {
+        printf("No se pudo asignar memoria para tabla de paginas del proceso %d.\n", new_proc->pid);
+        free(new_proc);
+        return;
+    }
+
+    for (int i = 0; i < num_pages; i++) {
+        new_proc->page_table[i].page_id = i;
+        new_proc->page_table[i].present = 0;
+        new_proc->page_table[i].frame_number = -1;
+    }
+
+    new_proc->next = lista_procesos;
+    lista_procesos = new_proc;
+
+    printf("\nNuevo proceso creado: PID=%d, tamaño=%dKB, páginas=%d\n",
+           new_proc->pid, new_proc->size, new_proc->num_pages);
+}
 
 void finalizar_proceso_random() {
     if (!lista_procesos) return;
@@ -331,10 +273,41 @@ void finalizar_proceso_random() {
 
     int idx = rand() % count;
     process *p = lista_procesos;
-    while (idx-- > 0 && p->next) p = p->next;
+    process *prev = NULL;
+    while (idx-- > 0 && p->next) {
+        prev = p;
+        p = p->next;
+    }
 
-    printf("\nFinalizando proceso %d...\n", p->pid);
-    finalizar_proceso(&lista_procesos, p->pid);
+    // Liberar marcos en RAM
+    for (int i = 0; i < total_ram_frames; i++) {
+        if (ram_memory[i].process_id == p->pid) {
+            ram_memory[i].process_id = -1;
+            ram_memory[i].page_num = -1;
+            ram_memory[i].last_access = 0;
+        }
+    }
+
+    // Liberar marcos en Swap
+    for (int i = 0; i < total_swap_frames; i++) {
+        if (swap_memory[i].process_id == p->pid) {
+            swap_memory[i].process_id = -1;
+            swap_memory[i].page_num = -1;
+            swap_memory[i].last_access = 0;
+        }
+    }
+
+    // Eliminar proceso de la lista
+    if (prev) {
+        prev->next = p->next;
+    } else {
+        lista_procesos = p->next;
+    }
+
+    free(p->page_table);
+    free(p);
+
+    printf("\nProceso %d finalizado y recursos liberados.\n", p->pid);
 }
 
 // --- NUEVA versión segura de crear_proceso_random() ---
@@ -347,28 +320,7 @@ void print_status() {
            global_time, proc_cnt, libres_ram, total_ram_frames, libres_swap, total_swap_frames);
 }
 
-void crear_proceso_random() {
-    static int pid_counter = 1;  // PID autoincremental
 
-    // Limitar número de procesos simultáneos
-    int max_procesos = 25;
-    int cnt = 0;
-    process *t = lista_procesos;
-    while (t) { cnt++; t = t->next; }
-
-    if (cnt >= max_procesos) {
-        return;
-    }
-
-    // Tamaño del proceso entre 200 y 600 páginas
-    int paginas = 1000 + rand() % 5000; // 200..600
-    int size_kb = paginas * page_size_kb;
-
-    crear_proceso(&lista_procesos, pid_counter++, size_kb);
-
-    printf("Proceso aleatorio creado. PID=%d, %d paginas (%d KB)\n",
-            pid_counter - 1, paginas, size_kb);
-}
 
 
 int main(){
